@@ -31,7 +31,7 @@ public class GameOfLife {
 //		for (Cell cell : aliveCells) {
 //			System.out.print("[" + cell.getX() + "," + cell.getY() + "] ");
 //		}
-		System.out.println();
+//		System.out.println();
 		HashSet<Cell> changedCells = new HashSet<Cell>();
 		int counter = 0;
 		getNeighbours();

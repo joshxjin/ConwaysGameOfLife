@@ -53,7 +53,7 @@ public class Application extends javafx.application.Application {
 		sp.setPrefViewportHeight(primaryStage.getHeight() - topPaneHeight);
 		sp.setContent(pane);
 		
-		sp.setStyle("");
+		sp.setStyle("-fx-font-size: 10px");
 		sp.setVbarPolicy(ScrollBarPolicy.ALWAYS);
 		sp.setHbarPolicy(ScrollBarPolicy.ALWAYS);
 		
@@ -62,25 +62,48 @@ public class Application extends javafx.application.Application {
 			@Override
 			public void handle(MouseEvent mouse) {
 				int mouseX, mouseY;
-				mouseX = (int)(mouse.getX() / scale);
-				if (mouse.getX() < 0)
-					mouseX--;
-				mouseY = (int)(mouse.getY() / scale);
-				if (mouse.getY() < 0)
-					mouseY--;
-				System.out.println(mouseX+","+mouseY);
-				
-				if (game.getAliveCells().contains(new Cell(mouseX, mouseY))) {
-					game.removeCell(mouseX, mouseY);
-					drawCells();
-				} else {
-					game.addCell(mouseX, mouseY);
-					Rectangle rect = new Rectangle(mouseX * scale, mouseY * scale, scale, scale);
-					rect.setFill(Color.BLACK);
-					rectList.add(rect);
-					pane.getChildren().add(rect);
+				//if (mouseX < pane.getWidth())
+				// only register clicks inside the scroll bars
+				if (mouse.getX() < sp.getWidth() - 12 && mouse.getY() < sp.getHeight() - 12) {
+					if (pane.getWidth() > sp.getWidth()) {
+						mouseX = (int)(((pane.getWidth() - sp.getWidth()) * sp.getHvalue() + Math.round(mouse.getX())) / scale);
+						if (sp.getHvalue() >= 0.5)
+							mouseX++;
+					} else
+						mouseX = (int)((mouse.getX() - 1) / scale);
+					
+					if (mouse.getX() < 0)
+						mouseX--;
+					
+					if (pane.getHeight() > sp.getHeight()) {
+						mouseY = (int)(((pane.getHeight() - sp.getHeight()) * sp.getVvalue() + Math.round(mouse.getY())) / scale);
+						if (sp.getVvalue() >= 0.5)
+							mouseY++;
+					} else
+						mouseY = (int)((mouse.getY() - 1) / scale);
+					
+					if (mouse.getY() < 0)
+						mouseY--;
+					
+//					System.out.println("Mouse: " + mouse.getX() + "," + mouse.getY());
+//					System.out.println("MouseLocal: " + mouseX + "," + mouseY);
+//					System.out.println("Scrollbar: " + sp.getHvalue() + "," + sp.getVvalue() );
+//					System.out.println("ScrollPane: " + sp.getWidth() + "," + sp.getHeight());
+//					System.out.println("Pane: " + pane.getWidth() + "," + pane.getHeight());
+//					System.out.println();
+					
+					if (game.getAliveCells().contains(new Cell(mouseX, mouseY))) {
+						game.removeCell(mouseX, mouseY);
+						drawCells();
+					} else {
+						game.addCell(mouseX, mouseY);
+						Rectangle rect = new Rectangle(mouseX * scale, mouseY * scale, scale, scale);
+						rect.setFill(Color.BLACK);
+						rectList.add(rect);
+						pane.getChildren().add(rect);
+					}
+					
 				}
-				
 			}
 			
 		});
