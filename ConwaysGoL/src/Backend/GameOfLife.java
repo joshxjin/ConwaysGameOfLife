@@ -17,6 +17,10 @@ public class GameOfLife {
 	public void addCell(int x, int y) {
 		aliveCells.add(new Cell(x, y));
 	}
+	
+	public void removeCell(int x, int y) {
+		aliveCells.remove(new Cell(x, y));
+	}
 
 	public HashSet<Cell> getAliveCells() {
 		return aliveCells;
@@ -24,13 +28,17 @@ public class GameOfLife {
 
 	public void nextGeneration() {
 		// update the states of each cell in checkCells based on rule
+//		for (Cell cell : aliveCells) {
+//			System.out.print("[" + cell.getX() + "," + cell.getY() + "] ");
+//		}
+		System.out.println();
 		HashSet<Cell> changedCells = new HashSet<Cell>();
 		int counter = 0;
 		getNeighbours();
 		for (Cell cell : checkCells) {
 			counter = checkNeighbours(cell);
 			if (aliveCells.contains(cell)) {
-				if (counter <= 2 || counter >= 5) {
+				if (counter < 2 || counter >= 4) {
 					changedCells.add(cell);
 				}
 			} else {

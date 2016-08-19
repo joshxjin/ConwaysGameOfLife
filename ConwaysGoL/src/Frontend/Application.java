@@ -1,5 +1,8 @@
 package Frontend;
 
+import java.util.ArrayList;
+
+import Backend.Cell;
 import Backend.GameOfLife;
 import javafx.animation.Animation.Status;
 import javafx.animation.KeyFrame;
@@ -13,29 +16,76 @@ import javafx.geometry.Orientation;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.ComboBox;
+import javafx.scene.control.ScrollBar;
 import javafx.scene.control.ScrollPane;
+import javafx.scene.control.ScrollPane.ScrollBarPolicy;
 import javafx.scene.control.Separator;
 import javafx.scene.control.Slider;
+import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.Pane;
+import javafx.scene.paint.Color;
+import javafx.scene.shape.Rectangle;
 import javafx.stage.Stage;
 import javafx.util.Duration;
 
 public class Application extends javafx.application.Application {
+	private int topPaneHeight = 40;
 	private GameOfLife game = new GameOfLife();
 	private int defaultSpeed = 250;
 	private Duration frameDuration = Duration.millis(defaultSpeed);
-	private Timeline tl = new Timeline();
+	private Timeline tl;
 	private KeyFrame frame;
 	private int scale = 10;
+	private ArrayList<Rectangle> rectList = new ArrayList<Rectangle>();
+	private Pane pane = new Pane();
 	
 	@Override
 	public void start(Stage primaryStage) throws Exception {
-		tl.stop();
+		tl = new Timeline();
+		tl.setCycleCount(Timeline.INDEFINITE);
+		nextGeneration();
 		HBox hb = new HBox();
 		setupTopPane(hb);
 		ScrollPane sp = new ScrollPane();
-		setupCenterPane(sp);
+		sp.setPrefViewportWidth(primaryStage.getWidth());
+		sp.setPrefViewportHeight(primaryStage.getHeight() - topPaneHeight);
+		sp.setContent(pane);
+		
+		sp.setStyle("");
+		sp.setVbarPolicy(ScrollBarPolicy.ALWAYS);
+		sp.setHbarPolicy(ScrollBarPolicy.ALWAYS);
+		
+		sp.addEventFilter(MouseEvent.MOUSE_CLICKED, new EventHandler<MouseEvent>() {
+
+			@Override
+			public void handle(MouseEvent mouse) {
+				int mouseX, mouseY;
+				mouseX = (int)(mouse.getX() / scale);
+				if (mouse.getX() < 0)
+					mouseX--;
+				mouseY = (int)(mouse.getY() / scale);
+				if (mouse.getY() < 0)
+					mouseY--;
+				System.out.println(mouseX+","+mouseY);
+				
+				if (game.getAliveCells().contains(new Cell(mouseX, mouseY))) {
+					game.removeCell(mouseX, mouseY);
+					drawCells();
+				} else {
+					game.addCell(mouseX, mouseY);
+					Rectangle rect = new Rectangle(mouseX * scale, mouseY * scale, scale, scale);
+					rect.setFill(Color.BLACK);
+					rectList.add(rect);
+					pane.getChildren().add(rect);
+				}
+				
+			}
+			
+		});
+		
+		setupCenterPane();
 		BorderPane bp = new BorderPane();
 		bp.setTop(hb);
 		bp.setCenter(sp);
@@ -54,15 +104,10 @@ public class Application extends javafx.application.Application {
 		// buttons to include, play, pause, restart
 		Button play = new Button("Play");
 		play.setOnAction(new EventHandler<ActionEvent>() {
-
+			
 			@Override
 			public void handle(ActionEvent event) {
-				if (tl.getStatus() == Status.STOPPED) {
-					tl.play();
-					nextGeneration();
-				} else if (tl.getStatus() == Status.PAUSED) {
-					tl.play();
-				}
+				tl.play();
 			}
 			
 		});
@@ -72,8 +117,7 @@ public class Application extends javafx.application.Application {
 
 			@Override
 			public void handle(ActionEvent event) {
-				if (tl.getStatus() == Status.RUNNING)
-					tl.pause();
+				tl.pause();
 			}
 			
 		});
@@ -85,6 +129,23 @@ public class Application extends javafx.application.Application {
 			public void handle(ActionEvent event) {
 				tl.stop();
 				game.restart();
+				pane.getChildren().removeAll(rectList);
+				//pane.getChildren().clear();
+			}
+			
+		});
+		
+		Button nextStep = new Button("Step");
+		nextStep.setOnAction(new EventHandler<ActionEvent>() {
+
+			@Override
+			public void handle(ActionEvent event) {
+				if (tl.getStatus() != Status.RUNNING) {
+					tl.stop(); 
+					tl.setCycleCount(1);
+					tl.play();
+					tl.setCycleCount(Timeline.INDEFINITE);
+				}
 			}
 			
 		});
@@ -96,6 +157,10 @@ public class Application extends javafx.application.Application {
 			@Override
 			public void changed(ObservableValue<? extends Number> observable, Number oldValue, Number newValue) {
 				frameDuration = Duration.millis(250 / (double)newValue);
+				boolean playing = tl.getStatus() == Status.RUNNING;
+				nextGeneration();
+				if (playing)
+					tl.play();
 			}
 			
 		});
@@ -105,7 +170,10 @@ public class Application extends javafx.application.Application {
 
 			@Override
 			public void handle(ActionEvent event) {
-				scale++;
+				if (scale <= 20) {
+					scale++;
+					drawCells();
+				}
 			}
 			
 		});
@@ -115,7 +183,10 @@ public class Application extends javafx.application.Application {
 
 			@Override
 			public void handle(ActionEvent event) {
-				scale--;
+				if (scale >= 1) {
+					scale--;
+					drawCells();
+				}
 			}
 			
 		});
@@ -128,11 +199,21 @@ public class Application extends javafx.application.Application {
 		Separator vertSeparator2 = new Separator(Orientation.VERTICAL);
 		vertSeparator2.setPadding(new Insets(0, 0, 0, 4));
 		hb.setPrefHeight(play.getHeight());
-		hb.getChildren().addAll(play, pause, restart, speed, vertSeparator1, zoomIn, zoomOut, vertSeparator2, patternsCB);
+		hb.getChildren().addAll(play, pause, nextStep, restart, speed, vertSeparator1, zoomIn, zoomOut, vertSeparator2, patternsCB);
 	}
 	
-	public void setupCenterPane(ScrollPane sp) {
+	public void setupCenterPane() {
 		// center pane is where the visualisation of Conway's Game of Cell happens
+		game.addCell(30, 20);
+		game.addCell(30, 21);
+		game.addCell(30, 22);
+		
+		for (Cell cell : game.getAliveCells()) {
+			Rectangle rect = new Rectangle(cell.getX()*scale, cell.getY()*scale, scale, scale);
+			rect.setFill(Color.BLACK);
+			rectList.add(rect);
+			pane.getChildren().add(rect);
+		}
 		
 	}
 	
@@ -142,8 +223,23 @@ public class Application extends javafx.application.Application {
 			@Override
 			public void handle(ActionEvent t) {
 				game.nextGeneration();
+				drawCells();
 			}
 		});
+		tl.stop();
+		tl.getKeyFrames().setAll(frame);
+	}
+	
+	public void drawCells() {
+		pane.getChildren().removeAll(rectList);
+		rectList.clear();
+		for (Cell cell : game.getAliveCells()) {
+			Rectangle rect = new Rectangle(cell.getX()*scale, cell.getY()*scale, scale, scale);
+			rect.setFill(Color.BLACK);
+			rectList.add(rect);
+			pane.getChildren().add(rect);
+		}
+		
 	}
 
 	public static void main(String[] args) {
