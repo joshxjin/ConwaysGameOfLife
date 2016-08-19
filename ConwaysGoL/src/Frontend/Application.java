@@ -4,6 +4,7 @@ import java.util.ArrayList;
 
 import Backend.Cell;
 import Backend.GameOfLife;
+import Backend.Patterns;
 import javafx.animation.Animation.Status;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
@@ -16,7 +17,6 @@ import javafx.geometry.Orientation;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.ComboBox;
-import javafx.scene.control.ScrollBar;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.control.ScrollPane.ScrollBarPolicy;
 import javafx.scene.control.Separator;
@@ -37,9 +37,10 @@ public class Application extends javafx.application.Application {
 	private Duration frameDuration = Duration.millis(defaultSpeed);
 	private Timeline tl;
 	private KeyFrame frame;
-	private int scale = 10;
+	private int scale = 8;
 	private ArrayList<Rectangle> rectList = new ArrayList<Rectangle>();
 	private Pane pane = new Pane();
+	private ComboBox<String> patternsCB;
 	
 	@Override
 	public void start(Stage primaryStage) throws Exception {
@@ -48,7 +49,11 @@ public class Application extends javafx.application.Application {
 		nextGeneration();
 		HBox hb = new HBox();
 		setupTopPane(hb);
+		pane.setMinWidth(3000);
+		pane.setMinHeight(3000);
 		ScrollPane sp = new ScrollPane();
+		sp.setHvalue(0.5);
+		sp.setVvalue(0.5);
 		sp.setPrefViewportWidth(primaryStage.getWidth());
 		sp.setPrefViewportHeight(primaryStage.getHeight() - topPaneHeight);
 		sp.setContent(pane);
@@ -57,7 +62,7 @@ public class Application extends javafx.application.Application {
 		sp.setVbarPolicy(ScrollBarPolicy.ALWAYS);
 		sp.setHbarPolicy(ScrollBarPolicy.ALWAYS);
 		
-		sp.addEventFilter(MouseEvent.MOUSE_CLICKED, new EventHandler<MouseEvent>() {
+		sp.addEventFilter(MouseEvent.MOUSE_PRESSED, new EventHandler<MouseEvent>() {
 
 			@Override
 			public void handle(MouseEvent mouse) {
@@ -72,18 +77,12 @@ public class Application extends javafx.application.Application {
 					} else
 						mouseX = (int)((mouse.getX() - 1) / scale);
 					
-					if (mouse.getX() < 0)
-						mouseX--;
-					
 					if (pane.getHeight() > sp.getHeight()) {
 						mouseY = (int)(((pane.getHeight() - sp.getHeight()) * sp.getVvalue() + Math.round(mouse.getY())) / scale);
 						if (sp.getVvalue() >= 0.5)
 							mouseY++;
 					} else
 						mouseY = (int)((mouse.getY() - 1) / scale);
-					
-					if (mouse.getY() < 0)
-						mouseY--;
 					
 //					System.out.println("Mouse: " + mouse.getX() + "," + mouse.getY());
 //					System.out.println("MouseLocal: " + mouseX + "," + mouseY);
@@ -92,17 +91,22 @@ public class Application extends javafx.application.Application {
 //					System.out.println("Pane: " + pane.getWidth() + "," + pane.getHeight());
 //					System.out.println();
 					
-					if (game.getAliveCells().contains(new Cell(mouseX, mouseY))) {
-						game.removeCell(mouseX, mouseY);
-						drawCells();
-					} else {
-						game.addCell(mouseX, mouseY);
-						Rectangle rect = new Rectangle(mouseX * scale, mouseY * scale, scale, scale);
-						rect.setFill(Color.BLACK);
-						rectList.add(rect);
-						pane.getChildren().add(rect);
-					}
+					for (Cell newCell : Patterns.getPattern(patternsCB.getValue(), mouseX, mouseY)) {
 					
+						if (game.getAliveCells().contains(newCell)) {
+							//game.removeCell(mouseX, mouseY);
+							game.getAliveCells().remove(newCell);
+							drawCells();
+						} else {
+							//game.addCell(mouseX, mouseY);
+							game.getAliveCells().add(newCell);
+							//Rectangle rect = new Rectangle(mouseX * scale, mouseY * scale, scale, scale);
+							Rectangle rect = new Rectangle(newCell.getX() * scale, newCell.getY() * scale, scale, scale);
+							rect.setFill(Color.BLACK);
+							rectList.add(rect);
+							pane.getChildren().add(rect);
+						}
+					}
 				}
 			}
 			
@@ -116,8 +120,8 @@ public class Application extends javafx.application.Application {
 		Scene scene = new Scene(bp);
 		
 		primaryStage.setScene(scene);
-		primaryStage.setMinWidth(900);
-		primaryStage.setMinHeight(700);
+		primaryStage.setMinWidth(1000);
+		primaryStage.setMinHeight(800);
 		primaryStage.centerOnScreen();
 		primaryStage.show();
 	}
@@ -214,9 +218,11 @@ public class Application extends javafx.application.Application {
 			
 		});
 		// combobox for pattern selection
-		ComboBox<String> patternsCB = new ComboBox<String>();
-		patternsCB.getItems().add(".");
+		patternsCB = new ComboBox<String>();
+		patternsCB.getItems().addAll(Patterns.getList());
+		patternsCB.setValue(".");
 		patternsCB.setPrefWidth(130);
+		
 		Separator vertSeparator1 = new Separator(Orientation.VERTICAL);
 		vertSeparator1.setPadding(new Insets(0, 2, 0, 2));
 		Separator vertSeparator2 = new Separator(Orientation.VERTICAL);
@@ -227,10 +233,6 @@ public class Application extends javafx.application.Application {
 	
 	public void setupCenterPane() {
 		// center pane is where the visualisation of Conway's Game of Cell happens
-		game.addCell(30, 20);
-		game.addCell(30, 21);
-		game.addCell(30, 22);
-		
 		for (Cell cell : game.getAliveCells()) {
 			Rectangle rect = new Rectangle(cell.getX()*scale, cell.getY()*scale, scale, scale);
 			rect.setFill(Color.BLACK);
