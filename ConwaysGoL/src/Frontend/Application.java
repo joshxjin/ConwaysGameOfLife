@@ -40,6 +40,7 @@ public class Application extends javafx.application.Application {
 	private int scale = 8;
 	private ArrayList<Rectangle> rectList = new ArrayList<Rectangle>();
 	private Pane pane = new Pane();
+	private ScrollPane sp = new ScrollPane();
 	private ComboBox<String> patternsCB;
 	
 	@Override
@@ -51,16 +52,17 @@ public class Application extends javafx.application.Application {
 		setupTopPane(hb);
 		pane.setMinWidth(3000);
 		pane.setMinHeight(3000);
-		ScrollPane sp = new ScrollPane();
 		sp.setHvalue(0.5);
 		sp.setVvalue(0.5);
 		sp.setPrefViewportWidth(primaryStage.getWidth());
 		sp.setPrefViewportHeight(primaryStage.getHeight() - topPaneHeight);
 		sp.setContent(pane);
 		
-		sp.setStyle("-fx-font-size: 10px");
 		sp.setVbarPolicy(ScrollBarPolicy.ALWAYS);
 		sp.setHbarPolicy(ScrollBarPolicy.ALWAYS);
+		
+		sp.setFitToHeight(true);
+		sp.setFitToWidth(true);
 		
 		sp.addEventFilter(MouseEvent.MOUSE_PRESSED, new EventHandler<MouseEvent>() {
 
@@ -198,8 +200,11 @@ public class Application extends javafx.application.Application {
 			@Override
 			public void handle(ActionEvent event) {
 				if (scale <= 20) {
+					sp.setHvalue(sp.getHvalue() + sp.getHvalue() / scale);
+					sp.setVvalue(sp.getVvalue() + sp.getVvalue() / scale);
 					scale++;
 					drawCells();
+					
 				}
 			}
 			
@@ -213,6 +218,8 @@ public class Application extends javafx.application.Application {
 				if (scale >= 1) {
 					scale--;
 					drawCells();
+					sp.setHvalue(sp.getHvalue() - sp.getHvalue() / scale);
+					sp.setVvalue(sp.getVvalue() - sp.getVvalue() / scale);
 				}
 			}
 			
